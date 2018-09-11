@@ -1,1 +1,1 @@
-# bin
+# A collection of Python scripts
