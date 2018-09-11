@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import sys
+import os
+import time
+import json
+import requests
+from base64 import b64encode
+import unicodedata
+
+auth = b64encode(b"beach:surf")
+headers = {'content-type': 'text/plain;',"Authorization":"Basic %s" % auth}
+url = 'http://127.0.0.1:7777'
+id = 0
+
+def dot():
+	sys.stdout.write('.')
+	sys.stdout.flush()
+
+def normalize(value):
+	str = "%.9f" % value
+	return float(str)
+
+def send(data,display=False):
+	global id
+	data["id"] = id
+	id += 1
+	if display:
+		print(data)
+	response = requests.post(url,data=json.dumps(data),headers=headers)
+	if response.status_code != 200:
+		raise Exception('HTTP Error code: %s' % response.status_code)
+	if response.json()["result"] == None:
+		raise Exception('Command error: %s(%s)' % response.json()["error"]["message"] %  response.json()["error"]["code"])
+	return response.json()["result"]
+
+
+def blockCount(): 
+	res = send({"method":"getblockcount","params":[]}) 
+	return int(res)
+
+def blockhash(index):
+	res =  send({"method":"getblockhash","params":[index]}) 
+	return res
+
+def block(hash):
+	res =  send({"method":"getblock","params":[hash]}) 
+	return res
+
+def txHasJS(hash):
+	res =  send({"method":"getrawtransaction","params":[hash,1]})
+	return len(res["vjoinsplit"]) > 0
+
+def getAllJS():
+	res =  send({"method":"dtg2","params":[]})
+	return res
+
+def rawTx(hash):
+	res = send({"method":"getrawtransaction","params":[hash,1]})
+	del res["hex"]
+	return res
+
+def showTX(i,tx):
+	print("TX: %s | hash: %s" % (i,tx))
+	print(json.dumps(rawTx(tx),indent=4,sort_keys=True))
+
+def showTXs(bloc):
+	txs = bloc["tx"]
+	for i in range(0,len(txs)):
+		showTX(i,txs[i])
+
+def newTAddress():
+	res = send({"method":"getnewaddress","params":[]}) 
+	return res
+
+def newZAddress():
+	res = send({"method":"z_getnewaddress","params":[opid]}) 
+	return res
+
+def getOpidResult(opid):
+	res = send({"method":"z_getoperationstatus","params":[]}) 
+	return res
+
+if len(sys.argv) != 2:
+    print ('usage: ', os.path.basename(os.path.normpath(sys.argv[0])), '<txid>')
+    sys.exit()
+
+
+for height in range(blockCount())[::-1]:
+	hash = blockhash(height)
+	bloc = block(hash)
+	for i in range(0,len(bloc["tx"])):
+		if bloc["tx"][i] == sys.argv[1]:
+			print(height)
+			sys.exit()	
+print ("TX not found")
+
+

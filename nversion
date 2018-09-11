@@ -1,0 +1,93 @@
+#!/usr/bin/env python
+from __future__ import print_function
+
+import sys
+import os
+import time
+import json
+import requests
+from base64 import b64encode
+import unicodedata
+
+auth = b64encode(b"beach:surf")
+headers = {'content-type': 'text/plain;',"Authorization":"Basic %s" % auth}
+url = 'http://127.0.0.1:7000'
+id = 0
+
+def dot():
+	sys.stdout.write('.')
+	sys.stdout.flush()
+
+def normalize(value):
+	str = "%.9f" % value
+	return float(str)
+
+def send(data,display=False):
+	global id
+	data["id"] = id
+	id += 1
+	if display:
+		print(data)
+	response = requests.post(url,data=json.dumps(data),headers=headers)
+	if response.status_code != 200:
+		raise Exception('HTTP Error code: %s' % response.status_code)
+	if response.json()["result"] == None:
+		raise Exception('Command error: %s(%s)' % response.json()["error"]["message"] %  response.json()["error"]["code"])
+	return response.json()["result"]
+
+
+
+def blockCount(): 
+	res = send({"method":"getblockcount","params":[]}) 
+	return int(res)
+
+
+def blockhash(index):
+	res =  send({"method":"getblockhash","params":[index]}) 
+	return res
+
+def block(hash):
+	res =  send({"method":"getblock","params":[hash]}) 
+	return res
+
+#if len(sys.argv) != 2:
+#    print 'usage: ', os.path.basename(os.path.normpath(sys.argv[0])), '<index>'
+#    sys.exit()
+
+bcount = blockCount()
+counts = {}
+prev = 0
+for i in range(0,bcount):
+	h = blockhash(i)
+	b = block(h)
+	k = int(b["version"])
+	if k != prev:
+		print(i," : ",format(k,'#08x'))
+		prev = k
+	if k in counts:
+		counts[k] += 1
+	else:
+		counts[k] = 1
+
+print(counts)
+sys.exit()
+
+
+print(blockCount())
+hash = blockhash(int(sys.argv[1]))
+print(hash)
+print("----------------------------")
+b = block(hash)
+print(b["version"])
+print(b["hash"])
+print(b["height"])
+
+#dash: {536870912: 269135, 1: 1, 2: 244626, 3: 372762, 536870916: 3445, 536870913: 5321, 536870914: 10680}
+#stash: 
+#0  :  0x000001
+#1  :  0x20000000
+#2016  :  0x20000001
+#{536870912: 2015, 1: 1, 536870913: 1864}
+
+
+

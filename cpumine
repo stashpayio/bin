@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+#cpuminer -a x11 -o http://127.0.0.1:7777 -u beach -p surf --coinbase-addr=yby3FpgSqNrY2YffMKb26udZ7drV29f4rF -D -P
+cpuminer -a x11 -o stratum+tcp://testpool1.stashpay.org:3032 --coinbase-addr  yakva1uwSt4Q8wggy91Ke62E1aPH3UCW5j
